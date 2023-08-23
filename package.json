@@ -1,12 +1,13 @@
 {
-  "name": "next-deply-gcp",
+  "name": "next-deploy-gcp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker-build": "docker build -t next-deploy-gcp ."
   },
   "dependencies": {
     "@types/node": "20.5.1",
