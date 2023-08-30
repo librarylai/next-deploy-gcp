@@ -16,8 +16,7 @@ RUN npm ci --only=production
 # Copy local code to the container image.
 
 RUN npm run build
-
 EXPOSE 3000
-
+ENV PORT 3000
 # Run the web service on container startup.
 CMD [ "npm", "start" ]
