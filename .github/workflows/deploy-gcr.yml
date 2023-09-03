@@ -20,6 +20,7 @@ jobs:
           node-version: '18'
       - run: npm ci
       - run: npm run test
+
   build-and-deploy-gcr:
     name: Build and Deploy to GCR
     needs: testing # 設定需要 testing job 執行完後才會執行
@@ -30,18 +31,28 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: ${{ secrets.GCP_IAM_SERVICE_ACCOUNT_KEY }}}}
+
       - name: Get tag
         id: get_tag
         run: |
-          # 获取所有标签并排序
+          # 抓所有 tags 並且排序，取最後一個 tag
           git fetch --tags
           latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
           echo "::set-output name=latest_tag::$latest_tag"
 
+      - name: 'Authenticate with Google Cloud'  
+        id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{ secrets.GCP_IAM_SERVICE_ACCOUNT_KEY }}}}
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      #- name: 'docker login to Google Artifact Registry '
+        run: |-
+          echo '${{ steps.auth.outputs.access_token }}' 
+          
       - name: 'Use gcloud CLI'
         run: gcloud info
 
@@ -50,6 +61,7 @@ jobs:
         run: docker buildx build --platform linux/amd64 -t ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}} .
 
       - name: 'Docker push to Google Artifact Registry'
+        run: echo ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
         run: docker push ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
 
       - name: Deploy
