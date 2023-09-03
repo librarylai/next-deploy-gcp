@@ -7,7 +7,7 @@ on:
     branches:
       - master
     tags:
-      - '*'
+      - 'v*'
 # https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow
 jobs:
   testing:
