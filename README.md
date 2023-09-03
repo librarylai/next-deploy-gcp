@@ -238,7 +238,7 @@ gcloud auth login
 
 ### 4. 設置 Docker 到 Artifact Registry hosts 環境
 
-簡單來說可以想像是：我們可以透過下面這個指令來讓 Docker 跟 gcloud 上的環境連接
+簡單來說可以想像是：我們可以透過下面這個指令來讓 Docker 跟 gcloud 上的環境連接，允許將 Docker Image 上傳到該表中的地區，或是允許從該地區下載 Image。
 
 ```bash=
 gcloud auth configure-docker <你的 Artifact Repository 所在地區>

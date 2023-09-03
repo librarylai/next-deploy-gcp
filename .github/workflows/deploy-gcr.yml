@@ -2,10 +2,8 @@ name: deploy-google-cloud-run
 
 on:
   # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#push
-  # 設定當 push 到 master branch 且要帶有 tag 時才會觸發
+  # 設定當 push 時帶有 tag 時才會觸發
   push:
-    branches:
-      - master
     tags:
       - 'v*'
 # https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow
@@ -18,12 +16,16 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
       - run: npm ci
       - run: npm run test
 
   build-and-deploy-gcr:
-    name: Build and Deploy to GCR
-    needs: testing # 設定需要 testing job 執行完後才會執行
+    name:
+      Build and Deploy to GCR
+      # 設定需要 testing job 執行完後才會執行
+      # 且如果 npm run test 有錯誤，則不會執行。
+    needs: testing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -31,41 +33,43 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-
+      # 抓所有 tags 並且排序，取最後一個 tag
       - name: Get tag
         id: get_tag
+        # 將 tag 存到 output 變數中的 latest_tag 上面
         run: |
-          # 抓所有 tags 並且排序，取最後一個 tag
           git fetch --tags
           latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
           echo "::set-output name=latest_tag::$latest_tag"
-
+      # 取得  Google Cloud 授權，這邊將之前建立的 IAM service account key 透過 base64 轉換後
+      # 存到 Github secrets 中，這邊取名為 GCP_IAM_SERVICE_ACCOUNT_KEY
       - name: 'Authenticate with Google Cloud'
         id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
           credentials_json: ${{ secrets.GCP_IAM_SERVICE_ACCOUNT_KEY }}}}
-
+      # 安裝 Cloud SDK 相關套件
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
-
+      # 將 Docker 跟 gcloud 上的環境連接，並且增加 asia-east1-docker.pkg.dev 這個地區
+      # 允許將 Docker Image 上傳到該表中的地區，或是允許從該地區下載 Image。
       - name: Configure Docker Client of Gcloud
         run: |-
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker asia-east1-docker.pkg.dev --quiet
-
+      # 使用 gcloud CLI 來確認現在的帳號...等資訊，方便 debug
       - name: 'Use gcloud CLI'
         run: gcloud info
-
+      # 使用 Docker Buildx 來建立 Docker Image
       - name: 'Docker Buildx'
         id: buildx
         run: docker buildx build --platform linux/amd64 -t ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}} .
-
+      # 將 Docker Image 上傳到 Google Artifact Registry
       - name: 'Docker push to Google Artifact Registry'
         run: |
           echo ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
           docker push ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
-
+      # 將 Google Artifact Registry Image 發布到 Google Cloud Run
       - name: Deploy
         run: |
           gcloud run deploy  ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}} \
