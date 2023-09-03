@@ -1,0 +1,64 @@
+name: deploy-google-cloud-run
+
+on:
+  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#push
+  # 設定當 push 到 master branch 且要帶有 tag 時才會觸發
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+# https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow
+jobs:
+  testing:
+    name: Testing
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+        - run: npm ci
+        - run: npm run test
+  build-and-deploy-gcr:
+    name: Build and Deploy to GCR
+    needs: testing # 設定需要 testing job 執行完後才會執行
+    runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+            cache: 'npm'
+        - id: 'auth'
+          uses: 'google-github-actions/auth@v1'
+          with:
+            credentials_json: ${{ secrets.GCP_IAM_SERVICE_ACCOUNT_KEY }}}} 
+        - name: Get tag
+          id: get_tag
+          run: |
+              # 获取所有标签并排序
+              git fetch --tags
+              latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+              echo "::set-output name=latest_tag::$latest_tag"
+
+        - name: 'Use gcloud CLI'
+          run: gcloud info
+
+        - name: 'Docker Buildx'
+          id: buildx
+          run: docker buildx build --platform linux/amd64 -t ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}} .
+
+        - name: 'Docker push to Google Artifact Registry'
+          run: docker push ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
+
+        - name: Deploy
+          run: |
+            gcloud run deploy  ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}} \
+            --image=${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}} \
+            --platform managed \
+            --port 3000 \
+            --region asia-east1 \
+            --allow-unauthenticated \
+            --quiet \
+'
