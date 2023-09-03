@@ -49,9 +49,10 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
 
-      - name: 'docker login to Google Artifact Registry '
+      - name: Configure Docker Client of Gcloud
         run: |-
-          echo '${{ steps.auth.outputs.access_token }}'
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker asia-east1-docker.pkg.dev --quiet
 
       - name: 'Use gcloud CLI'
         run: gcloud info
