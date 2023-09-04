@@ -4,7 +4,7 @@
 
 ![](https://hackmd.io/_uploads/r19Eefr6h.png)
 
-> **本文開始前提醒：** >**本篇主要以『手動』的方式來部署到 Cloud Run 上面，預計下一篇才會用 Github Action 的方式來自動化部署。**
+> **本文開始前提醒：** >**本篇主要以『手動』的方式來部署到 Cloud Run 上面，下一篇[【筆記】前端 CI/CD 部署到 GCP 系列(二) - Github Action 整合自動化部署到 Cloud Run](https://hackmd.io/@Librarylai/S17LMlG0h) 才會用 Github Action 的方式來自動化部署。**
 
 ## 前置作業 - 建立 Next.js 專案
 
