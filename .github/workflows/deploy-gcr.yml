@@ -8,8 +8,9 @@ on:
       - 'v*'
 # https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow
 jobs:
-  testing:
-    name: Testing
+  # 第一個 job，用來執行測試
+  testing: # testing 為 job id
+    name: Testing # job 名稱
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,8 +20,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run test
-
-  build-and-deploy-gcr:
+  # 第二個 job，用來建立 Docker Image -> Google Artifact Registry -> Google Cloud Run
+  build-and-deploy-gcr: # build-and-deploy-gcr 為 job id
     name:
       Build and Deploy to GCR
       # 設定需要 testing job 執行完後才會執行
@@ -28,6 +29,11 @@ jobs:
     needs: testing
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
       # 抓所有 tags 並且排序，取最後一個 tag
       - name: Get tag
         id: get_tag
