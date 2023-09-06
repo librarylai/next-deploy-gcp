@@ -38,10 +38,11 @@ jobs:
       - name: Get tag
         id: get_tag
         # 將 tag 存到 output 變數中的 latest_tag 上面
+        # latest_tag={$latest_tag}" >> $GITHUB_OUTPUT 這段為設定 output 變數
         run: |
           git fetch --tags
           latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "::set-output name=latest_tag::$latest_tag"
+          echo "latest_tag={$latest_tag}" >> $GITHUB_OUTPUT
       # 取得  Google Cloud 授權，這邊將之前建立的 IAM service account key 透過 base64 轉換後
       # 存到 Github secrets 中，這邊取名為 GCP_IAM_SERVICE_ACCOUNT_KEY
       - name: 'Authenticate with Google Cloud'
