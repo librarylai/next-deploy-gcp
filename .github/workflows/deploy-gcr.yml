@@ -39,6 +39,7 @@ jobs:
         id: get_tag
         # 將 tag 存到 output 變數中的 latest_tag 上面
         # latest_tag=$latest_tag" >> $GITHUB_OUTPUT 這段為設定 output 變數
+        # 參考：https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
         run: |
           git fetch --tags
           latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
