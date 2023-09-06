@@ -38,11 +38,11 @@ jobs:
       - name: Get tag
         id: get_tag
         # 將 tag 存到 output 變數中的 latest_tag 上面
-        # latest_tag={$latest_tag}" >> $GITHUB_OUTPUT 這段為設定 output 變數
+        # latest_tag=$latest_tag" >> $GITHUB_OUTPUT 這段為設定 output 變數
         run: |
           git fetch --tags
           latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "latest_tag={$latest_tag}" >> $GITHUB_OUTPUT
+          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
       # 取得  Google Cloud 授權，這邊將之前建立的 IAM service account key 透過 base64 轉換後
       # 存到 Github secrets 中，這邊取名為 GCP_IAM_SERVICE_ACCOUNT_KEY
       - name: 'Authenticate with Google Cloud'
@@ -63,6 +63,7 @@ jobs:
       - name: 'Use gcloud CLI'
         run: gcloud info
       # 使用 Docker Buildx 來建立 Docker Image
+      # 這邊因為 runner 是用 ubuntu-latest，因此應該可以用 docker build 即可
       - name: 'Docker Buildx'
         id: buildx
         run: docker buildx build --platform linux/amd64 -t ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}} .
@@ -72,6 +73,12 @@ jobs:
           echo ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
           docker push ${{secrets.GCP_ARTIFACT_REPOSITORY}}/${{secrets.GCP_DOCKER_IMAGE_NAME}}:${{steps.get_tag.outputs.latest_tag}}
       # 將 Google Artifact Registry Image 發布到 Google Cloud Run
+      # ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}} 為指定 deploy 到哪個 cloud run service 上面，
+      # 因上一篇已經在 cloud run 上建立過一個 next-deploy-image service 因此這邊就直接指定該 service
+      # --port 設定為 3000 , 因為 dockerfile 中的 EXPOSE 為 3000
+      # --region 設定為 asia-east1 , 因為 cloud run service 是在 asia-east1 這個地區
+      # --allow-unauthenticated 因為此為公開 website
+      # --quiet 為不顯示互動式介面
       - name: Deploy
         run: |
           gcloud run deploy  ${{secrets.GCP_CLOUD_RUN_SERVICE_NAME}} \
