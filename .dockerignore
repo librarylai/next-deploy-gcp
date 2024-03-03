@@ -1,4 +1,5 @@
 README.md
 Dockerfile
 .dockerignore
+.next
 node_modules
