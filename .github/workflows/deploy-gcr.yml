@@ -6,6 +6,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      name:
+          description: 'run 描述'
+          required: true
+          default: '手動 run workflow'
 # https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow
 jobs:
   # 第一個 job，用來執行測試
